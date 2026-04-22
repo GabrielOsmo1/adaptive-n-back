@@ -37,6 +37,14 @@
 
         .input-group { display: flex; flex-direction: column; font-size: 0.65rem; color: var(--accent); font-weight: bold; }
         select, input { background: var(--bg); border: 1px solid var(--box-border); color: white; padding: 6px; margin-top: 4px; border-radius: 3px; outline: none; }
+        
+        /* Toggle Switch Style */
+        .switch { position: relative; display: inline-block; width: 34px; height: 20px; margin-top: 4px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #30363d; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(14px); }
 
         #grid {
             display: grid; gap: 8px; background-color: var(--grid-bg); padding: 12px;
@@ -76,7 +84,6 @@
             border: none; cursor: pointer; font-weight: 900; text-transform: uppercase; border-radius: 4px;
         }
 
-        /* PERSISTENT DATA STYLES */
         .history-panel {
             margin-top: 40px; width: 100%; max-width: 600px;
             background: var(--grid-bg); border: 1px solid var(--box-border);
@@ -109,15 +116,17 @@
                 <option value="3">3 (Triple)</option><option value="4">4 (Quad)</option>
             </select>
         </div>
-        <div class="input-group"><label>TRIALS (5-40)</label><input type="number" id="t-val" value="15" min="5" max="40"></div>
-        <div class="input-group"><label>DELAY (1-15s)</label><input type="number" id="d-val" value="3" min="1" max="15"></div>
+        <div class="input-group"><label>TRIALS</label><input type="number" id="t-val" value="15" min="5" max="40"></div>
+        <div class="input-group"><label>DELAY</label><input type="number" id="d-val" value="3" min="1" max="15"></div>
+        <div class="input-group">
+            <label>LURES</label>
+            <label class="switch"><input type="checkbox" id="lure-toggle"><span class="slider"></span></label>
+        </div>
         <div class="input-group"><label>VOICE</label><select id="voice-select" style="width: 100px;"></select></div>
     </div>
 
     <div id="grid" class="grid-4" style="opacity: 0.5;"></div>
-
     <div id="controls-container" class="response-controls"></div>
-
     <button class="btn-start" id="start-btn">Engage Protocol</button>
 
     <div class="history-panel">
@@ -133,7 +142,7 @@
         let stats = { h: 0, m: 0, f: 0 };
 
         function populateVoices() {
-            voices = synth.getVoices();
+            voices = synth.getVoices().filter(v => v.lang.startsWith('en'));
             document.getElementById('voice-select').innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
         }
         speechSynthesis.onvoiceschanged = populateVoices; populateVoices();
@@ -162,8 +171,7 @@
         function renderGrid() {
             const size = parseInt(document.getElementById('grid-size').value);
             const gridEl = document.getElementById('grid');
-            gridEl.className = `grid-${size}`;
-            gridEl.innerHTML = '';
+            gridEl.className = `grid-${size}`; gridEl.innerHTML = '';
             for(let i=0; i<size*size; i++) {
                 const c = document.createElement('div'); c.className = 'cell'; c.id = `c${i}`;
                 gridEl.appendChild(c);
@@ -172,14 +180,9 @@
 
         document.getElementById('complexity').onchange = updateUI;
         document.getElementById('grid-size').onchange = renderGrid;
-        updateUI();
-        loadLogs();
+        updateUI(); loadLogs();
 
-        document.getElementById('start-btn').onclick = () => {
-            if(gameActive) return;
-            document.getElementById('grid').style.opacity = "1";
-            start();
-        };
+        document.getElementById('start-btn').onclick = () => { if(!gameActive) { document.getElementById('grid').style.opacity = "1"; start(); } };
 
         function start() {
             stats = { h: 0, m: 0, f: 0 }; gameActive = true;
@@ -197,38 +200,45 @@
             if(currentIndex >= max || !gameActive) { finalize(n, streams); return; }
             let trial = { pos: [], aud: [], userPos: null, userAud: null };
             const pool = parseInt(document.getElementById('grid-size').value)**2;
-            while(trial.pos.length < streams) {
+            const luresOn = document.getElementById('lure-toggle').checked;
+
+            // Generate Stimuli with Lure Logic
+            for(let i=0; i<streams; i++) {
                 let p = Math.floor(Math.random() * pool);
-                if(!trial.pos.includes(p)) trial.pos.push(p);
-            }
-            while(trial.aud.length < streams) {
                 let a = alphabet[Math.floor(Math.random() * alphabet.length)];
+                
+                if(luresOn && currentIndex > 1 && Math.random() < 0.25) {
+                    // Try to lure from N-1 or N+1
+                    let lureIdx = Math.random() > 0.5 ? currentIndex - 1 : currentIndex - (n + 1);
+                    if(sequence[lureIdx]) {
+                        p = sequence[lureIdx].pos[0];
+                        a = sequence[lureIdx].aud[0];
+                    }
+                }
+                if(!trial.pos.includes(p)) trial.pos.push(p);
                 if(!trial.aud.includes(a)) trial.aud.push(a);
             }
+
             sequence.push(trial);
             trial.pos.forEach(p => document.getElementById(`c${p}`).classList.add('active'));
             trial.aud.forEach((a, i) => {
                 const u = new SpeechSynthesisUtterance(a);
                 u.voice = voices[document.getElementById('voice-select').value];
-                u.rate = 1.1; setTimeout(() => synth.speak(u), i * 350);
+                u.rate = 1.2; setTimeout(() => synth.speak(u), i * 350);
             });
             setTimeout(() => trial.pos.forEach(p => document.getElementById(`c${p}`).classList.remove('active')), 800);
-            setTimeout(() => {
-                if(currentIndex >= n) checkMiss(n);
-                currentIndex++;
-                runLoop(n, delay, streams, max);
-            }, delay);
+            setTimeout(() => { if(currentIndex >= n) checkMiss(n); currentIndex++; runLoop(n, delay, streams, max); }, delay);
         }
 
         function getMatch(curr, prev) {
+            if(!prev) return null;
             const matches = curr.filter(x => prev.includes(x)).length;
             if (matches === 0) return null;
             return (matches === curr.length && matches === prev.length) ? 'full' : 'partial';
         }
 
         function checkMiss(n) {
-            const curr = sequence[currentIndex];
-            const prev = sequence[currentIndex - n];
+            const curr = sequence[currentIndex], prev = sequence[currentIndex - n];
             if(getMatch(curr.pos, prev.pos) && !curr.userPos) stats.m++;
             if(getMatch(curr.aud, prev.aud) && !curr.userAud) stats.m++;
         }
@@ -245,7 +255,8 @@
         }
 
         function getBtnId(type, strength) {
-            if(parseInt(document.getElementById('complexity').value) === 1) return type === 'pos' ? 'pos-single' : 'aud-single';
+            const s = parseInt(document.getElementById('complexity').value);
+            if(s === 1) return type === 'pos' ? 'pos-single' : 'aud-single';
             return type === 'pos' ? (strength === 'full' ? 'pos-f' : 'pos-p') : (strength === 'full' ? 'aud-f' : 'aud-p');
         }
 
@@ -260,7 +271,9 @@
             document.getElementById('start-btn').disabled = false;
             document.getElementById('start-btn').innerText = "Engage Protocol";
             document.getElementById('grid').style.opacity = "0.5";
-            const acc = Math.round((stats.h/(stats.h+stats.m+stats.f||1))*100);
+            // Default 100% if no errors
+            const totalErrors = stats.m + stats.f;
+            const acc = totalErrors === 0 ? 100 : Math.round((stats.h / (stats.h + totalErrors)) * 100);
             saveLog(n, streams, acc, stats);
             alert(`Session Complete: ${acc}% Accuracy`);
         }
@@ -277,13 +290,11 @@
             const list = document.getElementById('log-list');
             list.innerHTML = logs.map(l => `
                 <div class="history-item">
-                    <span>${l.date}</span>
-                    <span style="color:var(--accent)">N${l.n}S${l.s}</span>
+                    <span>${l.date}</span><span style="color:var(--accent)">N${l.n}S${l.s}</span>
                     <span class="stat-val" style="color:var(--success)">HIT:${l.h}</span>
-                    <span class="stat-val" style="color:var(--fail)">MISS/FA:${l.m+l.f}</span>
+                    <span class="stat-val" style="color:var(--fail)">ERR:${l.m+l.f}</span>
                     <span style="font-weight:900">${l.acc}%</span>
-                </div>
-            `).join('');
+                </div>`).join('');
         }
 
         function clearLogs() { if(confirm("Purge Protocol Logs?")) { localStorage.removeItem('gabrinium_logs'); loadLogs(); } }
