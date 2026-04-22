@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GABRINIUM | Adaptive N-Back</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --grid-bg: #161b22;
+            --accent: #58a6ff;
+            --text: #c9d1d9;
+            --box-border: #30363d;
+            --highlight: #ffffff;
+            --fail: #f85149;
+            --success: #3fb950;
+            --partial: #f0883e;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            margin: 0;
+            user-select: none;
+        }
+
+        .config-panel {
+            display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+            margin-bottom: 20px; background: var(--grid-bg);
+            padding: 15px; border-radius: 4px; border: 1px solid var(--box-border);
+        }
+
+        .input-group { display: flex; flex-direction: column; font-size: 0.65rem; color: var(--accent); font-weight: bold; }
+        select, input { background: var(--bg); border: 1px solid var(--box-border); color: white; padding: 6px; margin-top: 4px; border-radius: 3px; outline: none; }
+
+        #grid {
+            display: grid; gap: 8px; background-color: var(--grid-bg); padding: 12px;
+            border: 1px solid var(--box-border); border-radius: 4px; transition: opacity 0.5s;
+        }
+
+        .grid-3 { grid-template-columns: repeat(3, 85px); grid-template-rows: repeat(3, 85px); }
+        .grid-4 { grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); }
+        .grid-5 { grid-template-columns: repeat(5, 65px); grid-template-rows: repeat(5, 65px); }
+        .grid-6 { grid-template-columns: repeat(6, 55px); grid-template-rows: repeat(6, 55px); }
+
+        .cell { background-color: var(--bg); border: 1px solid var(--box-border); transition: background 0.05s; }
+        .cell.active { background-color: var(--highlight); box-shadow: 0 0 15px var(--highlight); }
+
+        .response-controls { 
+            display: grid; gap: 15px; margin-top: 25px; 
+            width: 100%; max-width: 500px; 
+            transition: all 0.3s ease-in-out;
+        }
+
+        .resp-btn {
+            padding: 18px; border: 2px solid var(--box-border); background: var(--grid-bg);
+            color: var(--text); font-weight: 800; cursor: pointer; border-radius: 6px;
+            text-transform: uppercase; font-size: 0.7rem;
+            transition: all 0.25s ease-in-out;
+        }
+
+        .resp-btn:hover { border-color: var(--accent); background-color: #1c2128; transform: translateY(-2px); }
+        .resp-btn.full-btn { border-color: var(--success); color: var(--success); }
+        .resp-btn.part-btn { border-color: var(--partial); color: var(--partial); }
+
+        .flash-success { background: var(--success) !important; color: white !important; transition: none; }
+        .flash-fail { background: var(--fail) !important; color: white !important; transition: none; }
+
+        .btn-start {
+            margin-top: 25px; padding: 12px 60px; background: var(--accent); color: var(--bg);
+            border: none; cursor: pointer; font-weight: 900; text-transform: uppercase; border-radius: 4px;
+        }
+
+        /* PERSISTENT DATA STYLES */
+        .history-panel {
+            margin-top: 40px; width: 100%; max-width: 600px;
+            background: var(--grid-bg); border: 1px solid var(--box-border);
+            padding: 15px; border-radius: 4px;
+        }
+        .history-header { font-size: 0.7rem; color: var(--accent); font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; border-bottom: 1px solid var(--box-border); padding-bottom: 5px; }
+        .history-list { font-size: 0.75rem; max-height: 200px; overflow-y: auto; }
+        .history-item { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; padding: 8px 0; border-bottom: 1px solid #21262d; }
+        .stat-val { font-family: monospace; }
+        .clear-btn { background: none; border: 1px solid var(--fail); color: var(--fail); padding: 4px 8px; cursor: pointer; font-size: 0.6rem; border-radius: 3px; float: right; }
+    </style>
+</head>
+<body>
+
+    <h1 style="letter-spacing: 4px; color: var(--accent); margin: 5px 0;">GABRINIUM</h1>
+
+    <div class="config-panel">
+        <div class="input-group"><label>N-LEVEL</label><input type="number" id="n-val" value="2" min="1"></div>
+        <div class="input-group">
+            <label>GRID</label>
+            <select id="grid-size">
+                <option value="3">3x3</option><option value="4" selected>4x4</option>
+                <option value="5">5x5</option><option value="6">6x6</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>STREAMS</label>
+            <select id="complexity">
+                <option value="1">1 (Single)</option><option value="2" selected>2 (Dual)</option>
+                <option value="3">3 (Triple)</option><option value="4">4 (Quad)</option>
+            </select>
+        </div>
+        <div class="input-group"><label>TRIALS (5-40)</label><input type="number" id="t-val" value="15" min="5" max="40"></div>
+        <div class="input-group"><label>DELAY (1-15s)</label><input type="number" id="d-val" value="3" min="1" max="15"></div>
+        <div class="input-group"><label>VOICE</label><select id="voice-select" style="width: 100px;"></select></div>
+    </div>
+
+    <div id="grid" class="grid-4" style="opacity: 0.5;"></div>
+
+    <div id="controls-container" class="response-controls"></div>
+
+    <button class="btn-start" id="start-btn">Engage Protocol</button>
+
+    <div class="history-panel">
+        <button class="clear-btn" onclick="clearLogs()">Wipe Data</button>
+        <div class="history-header">PROTOCOL LOGS</div>
+        <div class="history-list" id="log-list"></div>
+    </div>
+
+    <script>
+        const synth = window.speechSynthesis;
+        const alphabet = "BDFHJKLMNPRSTW";
+        let voices = [], sequence = [], currentIndex = 0, gameActive = false;
+        let stats = { h: 0, m: 0, f: 0 };
+
+        function populateVoices() {
+            voices = synth.getVoices();
+            document.getElementById('voice-select').innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+        }
+        speechSynthesis.onvoiceschanged = populateVoices; populateVoices();
+
+        function updateUI() {
+            const streams = parseInt(document.getElementById('complexity').value);
+            const container = document.getElementById('controls-container');
+            if (streams === 1) {
+                container.style.gridTemplateColumns = "1fr 1fr";
+                container.innerHTML = `<button class="resp-btn" id="pos-single">Position (A)</button><button class="resp-btn" id="aud-single">Audio (L)</button>`;
+                document.getElementById('pos-single').onclick = () => handleInput('pos', 'full');
+                document.getElementById('aud-single').onclick = () => handleInput('aud', 'full');
+            } else {
+                container.style.gridTemplateColumns = "1fr 1fr";
+                container.innerHTML = `
+                    <button class="resp-btn part-btn" id="pos-p">Part Spatial (A)</button><button class="resp-btn full-btn" id="pos-f">Full Spatial (S)</button>
+                    <button class="resp-btn part-btn" id="aud-p">Part Audio (L)</button><button class="resp-btn full-btn" id="aud-f">Full Audio (K)</button>`;
+                document.getElementById('pos-p').onclick = () => handleInput('pos', 'partial');
+                document.getElementById('pos-f').onclick = () => handleInput('pos', 'full');
+                document.getElementById('aud-p').onclick = () => handleInput('aud', 'partial');
+                document.getElementById('aud-f').onclick = () => handleInput('aud', 'full');
+            }
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const size = parseInt(document.getElementById('grid-size').value);
+            const gridEl = document.getElementById('grid');
+            gridEl.className = `grid-${size}`;
+            gridEl.innerHTML = '';
+            for(let i=0; i<size*size; i++) {
+                const c = document.createElement('div'); c.className = 'cell'; c.id = `c${i}`;
+                gridEl.appendChild(c);
+            }
+        }
+
+        document.getElementById('complexity').onchange = updateUI;
+        document.getElementById('grid-size').onchange = renderGrid;
+        updateUI();
+        loadLogs();
+
+        document.getElementById('start-btn').onclick = () => {
+            if(gameActive) return;
+            document.getElementById('grid').style.opacity = "1";
+            start();
+        };
+
+        function start() {
+            stats = { h: 0, m: 0, f: 0 }; gameActive = true;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('start-btn').innerText = "Session Active";
+            const n = parseInt(document.getElementById('n-val').value);
+            const delay = parseInt(document.getElementById('d-val').value) * 1000;
+            const streams = parseInt(document.getElementById('complexity').value);
+            const max = parseInt(document.getElementById('t-val').value);
+            sequence = []; currentIndex = 0;
+            runLoop(n, delay, streams, max);
+        }
+
+        function runLoop(n, delay, streams, max) {
+            if(currentIndex >= max || !gameActive) { finalize(n, streams); return; }
+            let trial = { pos: [], aud: [], userPos: null, userAud: null };
+            const pool = parseInt(document.getElementById('grid-size').value)**2;
+            while(trial.pos.length < streams) {
+                let p = Math.floor(Math.random() * pool);
+                if(!trial.pos.includes(p)) trial.pos.push(p);
+            }
+            while(trial.aud.length < streams) {
+                let a = alphabet[Math.floor(Math.random() * alphabet.length)];
+                if(!trial.aud.includes(a)) trial.aud.push(a);
+            }
+            sequence.push(trial);
+            trial.pos.forEach(p => document.getElementById(`c${p}`).classList.add('active'));
+            trial.aud.forEach((a, i) => {
+                const u = new SpeechSynthesisUtterance(a);
+                u.voice = voices[document.getElementById('voice-select').value];
+                u.rate = 1.1; setTimeout(() => synth.speak(u), i * 350);
+            });
+            setTimeout(() => trial.pos.forEach(p => document.getElementById(`c${p}`).classList.remove('active')), 800);
+            setTimeout(() => {
+                if(currentIndex >= n) checkMiss(n);
+                currentIndex++;
+                runLoop(n, delay, streams, max);
+            }, delay);
+        }
+
+        function getMatch(curr, prev) {
+            const matches = curr.filter(x => prev.includes(x)).length;
+            if (matches === 0) return null;
+            return (matches === curr.length && matches === prev.length) ? 'full' : 'partial';
+        }
+
+        function checkMiss(n) {
+            const curr = sequence[currentIndex];
+            const prev = sequence[currentIndex - n];
+            if(getMatch(curr.pos, prev.pos) && !curr.userPos) stats.m++;
+            if(getMatch(curr.aud, prev.aud) && !curr.userAud) stats.m++;
+        }
+
+        function handleInput(type, strength) {
+            const n = parseInt(document.getElementById('n-val').value);
+            if(!gameActive || currentIndex < n) return;
+            const curr = sequence[currentIndex], prev = sequence[currentIndex - n];
+            const actual = getMatch(type === 'pos' ? curr.pos : curr.aud, type === 'pos' ? prev.pos : prev.aud);
+            if(type === 'pos') curr.userPos = strength; else curr.userAud = strength;
+            const btnId = getBtnId(type, strength);
+            if(actual === strength) { stats.h++; flash(btnId, true); }
+            else { stats.f++; flash(btnId, false); }
+        }
+
+        function getBtnId(type, strength) {
+            if(parseInt(document.getElementById('complexity').value) === 1) return type === 'pos' ? 'pos-single' : 'aud-single';
+            return type === 'pos' ? (strength === 'full' ? 'pos-f' : 'pos-p') : (strength === 'full' ? 'aud-f' : 'aud-p');
+        }
+
+        function flash(id, success) {
+            const el = document.getElementById(id);
+            const cls = success ? 'flash-success' : 'flash-fail';
+            el.classList.add(cls); setTimeout(() => el.classList.remove(cls), 300);
+        }
+
+        function finalize(n, streams) {
+            gameActive = false;
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('start-btn').innerText = "Engage Protocol";
+            document.getElementById('grid').style.opacity = "0.5";
+            const acc = Math.round((stats.h/(stats.h+stats.m+stats.f||1))*100);
+            saveLog(n, streams, acc, stats);
+            alert(`Session Complete: ${acc}% Accuracy`);
+        }
+
+        function saveLog(n, s, acc, st) {
+            const logs = JSON.parse(localStorage.getItem('gabrinium_logs') || '[]');
+            logs.unshift({ date: new Date().toLocaleTimeString(), n, s, acc, h: st.h, m: st.m, f: st.f });
+            localStorage.setItem('gabrinium_logs', JSON.stringify(logs.slice(0, 50)));
+            loadLogs();
+        }
+
+        function loadLogs() {
+            const logs = JSON.parse(localStorage.getItem('gabrinium_logs') || '[]');
+            const list = document.getElementById('log-list');
+            list.innerHTML = logs.map(l => `
+                <div class="history-item">
+                    <span>${l.date}</span>
+                    <span style="color:var(--accent)">N${l.n}S${l.s}</span>
+                    <span class="stat-val" style="color:var(--success)">HIT:${l.h}</span>
+                    <span class="stat-val" style="color:var(--fail)">MISS/FA:${l.m+l.f}</span>
+                    <span style="font-weight:900">${l.acc}%</span>
+                </div>
+            `).join('');
+        }
+
+        function clearLogs() { if(confirm("Purge Protocol Logs?")) { localStorage.removeItem('gabrinium_logs'); loadLogs(); } }
+
+        window.onkeydown = (e) => {
+            const k = e.key.toLowerCase(), s = parseInt(document.getElementById('complexity').value);
+            if(s === 1) { if(k === 'a') handleInput('pos', 'full'); if(k === 'l') handleInput('aud', 'full'); }
+            else { 
+                if(k === 'a') handleInput('pos', 'partial'); if(k === 's') handleInput('pos', 'full');
+                if(k === 'l') handleInput('aud', 'partial'); if(k === 'k') handleInput('aud', 'full');
+            }
+        };
+    </script>
+</body>
+</html>
