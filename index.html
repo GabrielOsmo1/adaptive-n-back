@@ -36,7 +36,7 @@
         }
 
         .input-group { display: flex; flex-direction: column; font-size: 0.65rem; color: var(--accent); font-weight: bold; }
-        select, input { background: var(--bg); border: 1px solid var(--box-border); color: white; padding: 6px; margin-top: 4px; border-radius: 3px; outline: none; }
+        select { background: var(--bg); border: 1px solid var(--box-border); color: white; padding: 6px; margin-top: 4px; border-radius: 3px; outline: none; min-width: 60px; }
         
         .switch { position: relative; display: inline-block; width: 34px; height: 20px; margin-top: 4px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -100,9 +100,8 @@
     <h1 style="letter-spacing: 4px; color: var(--accent); margin: 5px 0;">GABRINIUM</h1>
 
     <div class="config-panel">
-        <div class="input-group">
-            <label>N-LEVEL</label>
-            <select id="n-val"></select> </div>
+        <div class="input-group"><label>N-LEVEL</label><select id="n-val"></select></div>
+        
         <div class="input-group">
             <label>GRID</label>
             <select id="grid-size">
@@ -110,6 +109,7 @@
                 <option value="5">5x5</option><option value="6">6x6</option>
             </select>
         </div>
+
         <div class="input-group">
             <label>STREAMS</label>
             <select id="complexity">
@@ -117,12 +117,16 @@
                 <option value="3">3 (Triple)</option><option value="4">4 (Quad)</option>
             </select>
         </div>
-        <div class="input-group"><label>TRIALS</label><input type="number" id="t-val" value="15" min="5" max="40"></div>
-        <div class="input-group"><label>DELAY</label><input type="number" id="d-val" value="3" min="1" max="15"></div>
+
+        <div class="input-group"><label>TRIALS</label><select id="t-val"></select></div>
+        
+        <div class="input-group"><label>DELAY (S)</label><select id="d-val"></select></div>
+
         <div class="input-group">
             <label>LURES</label>
             <label class="switch"><input type="checkbox" id="lure-toggle"><span class="slider"></span></label>
         </div>
+
         <div class="input-group"><label>VOICE</label><select id="voice-select" style="width: 100px;"></select></div>
     </div>
 
@@ -142,14 +146,21 @@
         let voices = [], sequence = [], currentIndex = 0, gameActive = false;
         let stats = { h: 0, m: 0, f: 0 };
 
-        // Populate N-Level Dropdown 1-25
-        const nSelect = document.getElementById('n-val');
-        for(let i=1; i<=25; i++) {
-            const opt = document.createElement('option');
-            opt.value = i; opt.innerText = i;
-            if(i === 2) opt.selected = true;
-            nSelect.appendChild(opt);
+        // Utility to populate selectors
+        function populateSelect(id, start, end, step, defaultVal) {
+            const sel = document.getElementById(id);
+            for(let i=start; i<=end; i+=step) {
+                const opt = document.createElement('option');
+                opt.value = i; opt.innerText = i;
+                if(i === defaultVal) opt.selected = true;
+                sel.appendChild(opt);
+            }
         }
+
+        // Initialize Selectors
+        populateSelect('n-val', 1, 25, 1, 2);
+        populateSelect('t-val', 5, 40, 5, 15);
+        populateSelect('d-val', 1, 15, 1, 3);
 
         function populateVoices() {
             voices = synth.getVoices().filter(v => v.lang.startsWith('en'));
