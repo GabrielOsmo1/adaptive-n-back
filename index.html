@@ -3,322 +3,995 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GABRINIUM | Adaptive N-Back</title>
+    <title>GABRINIUM | N-Back</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0d1117;
-            --grid-bg: #161b22;
-            --accent: #58a6ff;
-            --text: #c9d1d9;
-            --box-border: #30363d;
-            --highlight: #ffffff;
-            --fail: #f85149;
-            --success: #3fb950;
-            --partial: #f0883e;
+            --bg:        #060810;
+            --s1:        #0c1018;
+            --s2:        #111620;
+            --s3:        #182030;
+            --border:    #1e2840;
+            --border2:   #2a3858;
+            --accent:    #2d7cff;
+            --accent2:   #4d9aff;
+            --glow:      rgba(45,124,255,0.25);
+            --text:      #d4dff0;
+            --dim:       #4a607a;
+            --dim2:      #2a3a52;
+            --success:   #00e676;
+            --fail:      #ff3d57;
+            --warn:      #ffb300;
+            --cell-on:   #ffffff;
+            --pos-color: #2d7cff;
+            --aud-color: #00e676;
         }
 
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background-color: var(--bg);
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg);
             color: var(--text);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 15px;
-            margin: 0;
+            padding: 28px 16px 60px;
             user-select: none;
+            background-image:
+                linear-gradient(rgba(45,124,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(45,124,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
 
+        /* ── Header ── */
+        .header { text-align: center; margin-bottom: 28px; }
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            letter-spacing: 10px;
+            color: var(--accent);
+            text-shadow: 0 0 40px var(--glow);
+            line-height: 1;
+        }
+        .tagline {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--dim);
+            letter-spacing: 5px;
+            margin-top: 4px;
+        }
+
+        /* ── Config ── */
         .config-panel {
-            display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
-            margin-bottom: 20px; background: var(--grid-bg);
-            padding: 15px; border-radius: 4px; border: 1px solid var(--box-border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            background: var(--s1);
+            padding: 14px 18px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            max-width: 700px;
+            width: 100%;
+            margin-bottom: 22px;
         }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--dim);
+            text-transform: uppercase;
+        }
+        select {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--s2);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            padding: 7px 9px;
+            border-radius: 3px;
+            outline: none;
+            font-size: 0.78rem;
+            cursor: pointer;
+            min-width: 70px;
+            transition: border-color 0.2s;
+        }
+        select:focus, select:hover { border-color: var(--accent); }
 
-        .input-group { display: flex; flex-direction: column; font-size: 0.65rem; color: var(--accent); font-weight: bold; }
-        select { background: var(--bg); border: 1px solid var(--box-border); color: white; padding: 6px; margin-top: 4px; border-radius: 3px; outline: none; min-width: 60px; }
-        
-        .switch { position: relative; display: inline-block; width: 34px; height: 20px; margin-top: 4px; }
+        .switch { position: relative; display: inline-block; width: 38px; height: 22px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #30363d; transition: .4s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(14px); }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background: var(--s2); border: 1px solid var(--border2);
+            transition: .3s; border-radius: 22px;
+        }
+        .slider::before {
+            position: absolute; content: "";
+            height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background: var(--dim); transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background: rgba(45,124,255,0.3); border-color: var(--accent); }
+        input:checked + .slider::before { transform: translateX(16px); background: var(--accent); }
 
+        /* ── Session HUD ── */
+        .session-hud {
+            width: 100%;
+            max-width: 480px;
+            margin-bottom: 16px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+        .hud-n-block { line-height: 1; }
+        .hud-n-label { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--dim); letter-spacing: 3px; }
+        .hud-n-val {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.2rem;
+            color: var(--accent);
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px var(--glow);
+        }
+        .hud-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .hud-stat {
+            text-align: center;
+            background: var(--s1);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 10px;
+        }
+        .hud-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; letter-spacing: 2px; color: var(--dim); margin-bottom: 2px; }
+        .hud-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; }
+        .progress-track {
+            width: 100%; height: 2px;
+            background: var(--border); border-radius: 2px;
+            overflow: visible; position: relative;
+        }
+        .progress-fill {
+            height: 100%; background: var(--accent); border-radius: 2px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%; box-shadow: 0 0 8px var(--accent);
+        }
+
+        /* ── Grid ── */
+        #grid-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
         #grid {
-            display: grid; gap: 8px; background-color: var(--grid-bg); padding: 12px;
-            border: 1px solid var(--box-border); border-radius: 4px; transition: opacity 0.5s;
+            display: grid;
+            gap: 5px;
+            background: var(--s1);
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: opacity 0.4s;
+        }
+        .grid-3 { grid-template-columns: repeat(3, 95px); grid-template-rows: repeat(3, 95px); }
+        .grid-4 { grid-template-columns: repeat(4, 80px); grid-template-rows: repeat(4, 80px); }
+        .grid-5 { grid-template-columns: repeat(5, 67px); grid-template-rows: repeat(5, 67px); }
+        .grid-6 { grid-template-columns: repeat(6, 57px); grid-template-rows: repeat(6, 57px); }
+
+        .cell {
+            background: var(--s2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            transition: background 0.04s, box-shadow 0.04s, border-color 0.04s;
+        }
+        .cell.active {
+            background: var(--cell-color, var(--cell-on));
+            box-shadow: 0 0 24px var(--cell-glow, rgba(255,255,255,0.5)), 0 0 60px var(--cell-glow2, rgba(255,255,255,0.15));
+            border-color: var(--cell-color, var(--cell-on));
         }
 
-        .grid-3 { grid-template-columns: repeat(3, 85px); grid-template-rows: repeat(3, 85px); }
-        .grid-4 { grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); }
-        .grid-5 { grid-template-columns: repeat(5, 65px); grid-template-rows: repeat(5, 65px); }
-        .grid-6 { grid-template-columns: repeat(6, 55px); grid-template-rows: repeat(6, 55px); }
-
-        .cell { background-color: var(--bg); border: 1px solid var(--box-border); transition: background 0.05s; }
-        .cell.active { background-color: var(--highlight); box-shadow: 0 0 15px var(--highlight); }
-
-        .response-controls { 
-            display: grid; gap: 15px; margin-top: 25px; 
-            width: 100%; max-width: 500px; 
-            transition: all 0.3s ease-in-out;
+        /* ── Letter + Side Row ── */
+        .letter-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 8px;
+            height: 52px;
         }
+        .letter-display {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.8rem;
+            letter-spacing: 8px;
+            color: var(--accent2);
+            text-shadow: 0 0 20px var(--glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s;
+            min-width: 48px;
+        }
+        .letter-display.show { opacity: 1; }
 
+        .side-arrow {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--warn);
+            text-shadow: 0 0 16px rgba(255,179,0,0.5);
+            opacity: 0;
+            transition: opacity 0.1s;
+            width: 36px;
+            display: flex;
+            align-items: center;
+        }
+        .side-arrow.show { opacity: 1; }
+        .side-arrow.left { justify-content: flex-start; }
+        .side-arrow.right { justify-content: flex-end; }
+
+        /* ── Response Buttons ── */
+        .response-controls {
+            display: grid;
+            gap: 8px;
+            margin-top: 16px;
+            width: 100%;
+            max-width: 480px;
+        }
         .resp-btn {
-            padding: 18px; border: 2px solid var(--box-border); background: var(--grid-bg);
-            color: var(--text); font-weight: 800; cursor: pointer; border-radius: 6px;
-            text-transform: uppercase; font-size: 0.7rem;
-            transition: all 0.25s ease-in-out;
+            padding: 16px 20px;
+            border: 1px solid var(--border2);
+            background: var(--s1);
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.72rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
+        .resp-btn .key-badge {
+            font-size: 0.65rem;
+            background: var(--s2);
+            border: 1px solid var(--border2);
+            padding: 3px 9px;
+            border-radius: 3px;
+            color: var(--dim);
+        }
+        .resp-btn.pos-btn  { border-color: rgba(45,124,255,0.3); }
+        .resp-btn.pos-btn:hover:not(:disabled)  { border-color: var(--pos-color); background: rgba(45,124,255,0.08); }
 
-        .resp-btn:hover { border-color: var(--accent); background-color: #1c2128; transform: translateY(-2px); }
-        .resp-btn.full-btn { border-color: var(--success); color: var(--success); }
-        .resp-btn.part-btn { border-color: var(--partial); color: var(--partial); }
+        .resp-btn.aud-btn  { border-color: rgba(0,230,118,0.3); }
+        .resp-btn.aud-btn:hover:not(:disabled)  { border-color: var(--aud-color); background: rgba(0,230,118,0.08); }
 
-        .flash-success { background: var(--success) !important; color: white !important; transition: none; }
-        .flash-fail { background: var(--fail) !important; color: white !important; transition: none; }
+        .resp-btn.side-btn { border-color: rgba(255,179,0,0.3); }
+        .resp-btn.side-btn:hover:not(:disabled) { border-color: var(--warn); background: rgba(255,179,0,0.08); }
 
+        .resp-btn.col-btn  { border-color: rgba(180,0,255,0.3); }
+        .resp-btn.col-btn:hover:not(:disabled)  { border-color: #b400ff; background: rgba(180,0,255,0.08); }
+
+        .resp-btn:active:not(:disabled) { transform: scale(0.98); }
+        .resp-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+        .flash-success { background: rgba(0,230,118,0.18) !important; border-color: var(--success) !important; transition: none !important; }
+        .flash-fail    { background: rgba(255,61,87,0.18) !important;  border-color: var(--fail) !important;    transition: none !important; }
+
+        /* ── Start Button ── */
         .btn-start {
-            margin-top: 25px; padding: 12px 60px; background: var(--accent); color: var(--bg);
-            border: none; cursor: pointer; font-weight: 900; text-transform: uppercase; border-radius: 4px;
+            margin-top: 18px;
+            padding: 14px 56px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.72rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+        }
+        .btn-start:hover:not(:disabled) { background: #3d8fff; box-shadow: 0 4px 24px var(--glow); transform: translateY(-1px); }
+        .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* ── Quad hint banner ── */
+        .quad-hint {
+            display: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            letter-spacing: 3px;
+            color: var(--warn);
+            background: rgba(255,179,0,0.06);
+            border: 1px solid rgba(255,179,0,0.2);
+            border-radius: 3px;
+            padding: 6px 14px;
+            margin-top: 10px;
+            text-align: center;
         }
 
-        .history-panel {
-            margin-top: 40px; width: 100%; max-width: 600px;
-            background: var(--grid-bg); border: 1px solid var(--box-border);
-            padding: 15px; border-radius: 4px;
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(6,8,16,0.88);
+            backdrop-filter: blur(6px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
         }
-        .history-header { font-size: 0.7rem; color: var(--accent); font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; border-bottom: 1px solid var(--box-border); padding-bottom: 5px; }
-        .history-list { font-size: 0.75rem; max-height: 200px; overflow-y: auto; }
-        .history-item { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; padding: 8px 0; border-bottom: 1px solid #21262d; }
-        .stat-val { font-family: monospace; }
-        .clear-btn { background: none; border: 1px solid var(--fail); color: var(--fail); padding: 4px 8px; cursor: pointer; font-size: 0.6rem; border-radius: 3px; float: right; }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
+        .modal {
+            background: var(--s1);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            padding: 40px 44px;
+            text-align: center;
+            max-width: 400px;
+            width: 92%;
+        }
+        .modal-header { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 5px; color: var(--dim); margin-bottom: 12px; }
+        .modal-acc { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; line-height: 1; letter-spacing: 4px; margin-bottom: 4px; }
+        .modal-acc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; letter-spacing: 5px; color: var(--dim); margin-bottom: 24px; }
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 28px; }
+        .modal-stat-box { background: var(--s2); border: 1px solid var(--border); border-radius: 4px; padding: 14px 8px; }
+        .modal-stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; letter-spacing: 3px; color: var(--dim); margin-bottom: 6px; }
+        .modal-stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; line-height: 1; letter-spacing: 2px; }
+        .modal-btn {
+            padding: 12px 40px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .modal-btn:hover { background: #3d8fff; }
+
+        /* ── History ── */
+        .history-panel {
+            margin-top: 36px;
+            width: 100%;
+            max-width: 560px;
+            background: var(--s1);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .history-top { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        .history-title { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 700; letter-spacing: 4px; color: var(--dim); }
+        .wipe-btn {
+            font-family: 'JetBrains Mono', monospace;
+            background: none;
+            border: 1px solid var(--border2);
+            color: var(--dim);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 0.55rem;
+            letter-spacing: 2px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+        .wipe-btn:hover { border-color: var(--fail); color: var(--fail); }
+        .history-list { font-size: 0.72rem; max-height: 220px; overflow-y: auto; }
+        .history-item {
+            display: grid;
+            grid-template-columns: 1.2fr 0.9fr 0.7fr 0.7fr 0.7fr;
+            padding: 9px 16px;
+            border-bottom: 1px solid var(--dim2);
+            align-items: center;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .h-time { font-family: 'JetBrains Mono', monospace; color: var(--dim); font-size: 0.65rem; }
+        .h-n    { font-family: 'JetBrains Mono', monospace; color: var(--accent2); font-weight: 700; }
+        .h-num  { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+        .h-pct  { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; }
+        .empty-log { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--dim); padding: 20px 16px; text-align: center; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <h1 style="letter-spacing: 4px; color: var(--accent); margin: 5px 0;">GABRINIUM</h1>
+    <!-- ── Result Modal ── -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">SESSION COMPLETE</div>
+            <div class="modal-acc" id="modal-acc">0%</div>
+            <div class="modal-acc-label">ACCURACY</div>
+            <div class="modal-grid">
+                <div class="modal-stat-box">
+                    <div class="modal-stat-lbl">HITS</div>
+                    <div class="modal-stat-num" id="modal-h" style="color:var(--success)">0</div>
+                </div>
+                <div class="modal-stat-box">
+                    <div class="modal-stat-lbl">MISSES</div>
+                    <div class="modal-stat-num" id="modal-m" style="color:var(--warn)">0</div>
+                </div>
+                <div class="modal-stat-box">
+                    <div class="modal-stat-lbl">FALSE+</div>
+                    <div class="modal-stat-num" id="modal-f" style="color:var(--fail)">0</div>
+                </div>
+            </div>
+            <button class="modal-btn" onclick="closeModal()">CONTINUE</button>
+        </div>
+    </div>
 
+    <!-- ── Header ── -->
+    <div class="header">
+        <div class="logo">GABRINIUM</div>
+        <div class="tagline">ADAPTIVE N-BACK PROTOCOL</div>
+    </div>
+
+    <!-- ── Config ── -->
     <div class="config-panel">
         <div class="input-group"><label>N-LEVEL</label><select id="n-val"></select></div>
         <div class="input-group">
             <label>GRID</label>
             <select id="grid-size">
-                <option value="3">3x3</option><option value="4" selected>4x4</option>
-                <option value="5">5x5</option><option value="6">6x6</option>
+                <option value="3">3×3</option>
+                <option value="4" selected>4×4</option>
+                <option value="5">5×5</option>
+                <option value="6">6×6</option>
             </select>
         </div>
         <div class="input-group">
-            <label>STREAMS</label>
-            <select id="complexity">
-                <option value="1">1 (Single)</option><option value="2" selected>2 (Dual)</option>
-                <option value="3">3 (Triple)</option><option value="4">4 (Quad)</option>
+            <label>MODE</label>
+            <select id="mode">
+                <option value="1">Single (Audio)</option>
+                <option value="2" selected>Dual (Pos+Audio)</option>
+                <option value="4">Quad (Pos+Audio+Side+Color)</option>
             </select>
         </div>
         <div class="input-group"><label>TRIALS</label><select id="t-val"></select></div>
-        <div class="input-group"><label>DELAY (S)</label><select id="d-val"></select></div>
+        <div class="input-group"><label>SPEED (S)</label><select id="d-val"></select></div>
         <div class="input-group">
             <label>LURES</label>
             <label class="switch"><input type="checkbox" id="lure-toggle"><span class="slider"></span></label>
         </div>
-        <div class="input-group"><label>VOICE</label><select id="voice-select" style="width: 100px;"></select></div>
+        <div class="input-group"><label>VOICE</label><select id="voice-select" style="min-width:120px"></select></div>
     </div>
 
-    <div id="grid" class="grid-4" style="opacity: 0.5;"></div>
-    <div id="controls-container" class="response-controls"></div>
-    <button class="btn-start" id="start-btn">Engage Protocol</button>
+    <!-- ── Session HUD ── -->
+    <div class="session-hud" id="session-hud">
+        <div class="hud-top">
+            <div class="hud-n-block">
+                <div class="hud-n-label">N-BACK</div>
+                <div class="hud-n-val" id="hud-n">2</div>
+            </div>
+            <div class="hud-stats">
+                <div class="hud-stat">
+                    <div class="hud-stat-label">HITS</div>
+                    <div class="hud-stat-val" id="live-h" style="color:var(--success)">0</div>
+                </div>
+                <div class="hud-stat">
+                    <div class="hud-stat-label">MISS</div>
+                    <div class="hud-stat-val" id="live-m" style="color:var(--warn)">0</div>
+                </div>
+                <div class="hud-stat">
+                    <div class="hud-stat-label">FA</div>
+                    <div class="hud-stat-val" id="live-f" style="color:var(--fail)">0</div>
+                </div>
+                <div class="hud-stat">
+                    <div class="hud-stat-label">TRIAL</div>
+                    <div class="hud-stat-val" id="live-t" style="color:var(--accent2)">0/0</div>
+                </div>
+            </div>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
 
+    <!-- ── Grid + Letter/Side Display ── -->
+    <div id="grid-wrapper">
+        <div id="grid" class="grid-4" style="opacity:0.35;"></div>
+        <div class="letter-row">
+            <div class="side-arrow left" id="arrow-left">◀</div>
+            <div class="letter-display" id="letter-display">·</div>
+            <div class="side-arrow right" id="arrow-right">▶</div>
+        </div>
+    </div>
+
+    <!-- ── Response Buttons ── -->
+    <div id="controls-container" class="response-controls"></div>
+
+    <!-- ── Quad hint ── -->
+    <div class="quad-hint" id="quad-hint">
+        ⚠ QUAD MODE — USE HEADPHONES FOR SPATIAL AUDIO · A=POS · L=SOUND · S=SIDE · ;=COLOR
+    </div>
+
+    <button class="btn-start" id="start-btn">ENGAGE PROTOCOL</button>
+
+    <!-- ── History ── -->
     <div class="history-panel">
-        <button class="clear-btn" onclick="clearLogs()">Wipe Data</button>
-        <div class="history-header">PROTOCOL LOGS</div>
+        <div class="history-top">
+            <span class="history-title">PROTOCOL LOGS</span>
+            <button class="wipe-btn" onclick="clearLogs()">WIPE DATA</button>
+        </div>
         <div class="history-list" id="log-list"></div>
     </div>
 
     <script>
+    (() => {
         const synth = window.speechSynthesis;
-        // REDUCED SET: Optimized for high-frequency cognitive interference
-        const alphabet = "BDFHJLMR"; 
-        let voices = [], sequence = [], currentIndex = 0, gameActive = false;
-        let stats = { h: 0, m: 0, f: 0 };
+        const LETTERS = ['B','D','F','H','J','L','M','R'];
+        const MATCH_RATE = 0.33;
+        const LURE_RATE  = 0.18;
 
-        function populateSelect(id, start, end, step, defaultVal) {
-            const sel = document.getElementById(id);
-            for(let i=start; i<=end; i+=step) {
-                const opt = document.createElement('option');
-                opt.value = i; opt.innerText = i;
-                if(i === defaultVal) opt.selected = true;
-                sel.appendChild(opt);
+        // ── Quad color stream ──
+        const SIDES      = ['L', 'R'];
+        const COLORS     = [0, 1, 2, 3]; // indices
+        const COLOR_HEX  = ['#ffffff', '#ffb300', '#00e5ff', '#ff4081'];
+        const COLOR_GLOW = ['rgba(255,255,255,0.5)', 'rgba(255,179,0,0.6)', 'rgba(0,229,255,0.6)', 'rgba(255,64,129,0.6)'];
+        const COLOR_GLOW2= ['rgba(255,255,255,0.15)','rgba(255,179,0,0.2)', 'rgba(0,229,255,0.2)', 'rgba(255,64,129,0.2)'];
+
+        // ── Web Audio (spatial beep) ──
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        populateSelect('n-val', 1, 25, 1, 2);
-        populateSelect('t-val', 5, 100, 5, 20); // Expanded trials for endurance
-        populateSelect('d-val', 1, 15, 1, 3);
+        function playDirectionalBeep(side) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc  = audioCtx.createOscillator();
+            const pan  = audioCtx.createStereoPanner();
+            const gain = audioCtx.createGain();
 
-        function populateVoices() {
+            osc.type = 'sine';
+            osc.frequency.value = 660; // E5 — distinct from speech, not harsh
+            pan.pan.value = (side === 'L') ? -0.92 : 0.92;
+
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.22, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+            osc.connect(pan);
+            pan.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.18);
+        }
+
+        let voices = [];
+        let sequence = [];
+        let currentIndex = 0;
+        let totalTrials = 0;
+        let nLevel = 2;
+        let modeStreams = 2;
+        let gameActive = false;
+        let loopTimer = null;
+        let stats = { h:0, m:0, f:0 };
+
+        // ── Selects ──
+        function populate(id, start, end, step, def) {
+            const el = document.getElementById(id);
+            for (let v = start; v <= end; v += step) {
+                const o = document.createElement('option');
+                o.value = v; o.textContent = v;
+                if (v === def) o.selected = true;
+                el.appendChild(o);
+            }
+        }
+        populate('n-val', 1, 25, 1, 2);
+        populate('t-val', 10, 100, 5, 20);
+        populate('d-val', 1, 10, 1, 3);
+
+        // ── Voices ──
+        function loadVoices() {
             voices = synth.getVoices().filter(v => v.lang.startsWith('en'));
-            document.getElementById('voice-select').innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+            const sel = document.getElementById('voice-select');
+            sel.innerHTML = voices.map((v,i) => `<option value="${i}">${v.name}</option>`).join('');
         }
-        speechSynthesis.onvoiceschanged = populateVoices; populateVoices();
+        speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
 
-        function updateUI() {
-            const streams = parseInt(document.getElementById('complexity').value);
-            const container = document.getElementById('controls-container');
-            if (streams === 1) {
-                container.style.gridTemplateColumns = "1fr 1fr";
-                container.innerHTML = `<button class="resp-btn" id="pos-single">Position (A)</button><button class="resp-btn" id="aud-single">Audio (L)</button>`;
-                document.getElementById('pos-single').onclick = () => handleInput('pos', 'full');
-                document.getElementById('aud-single').onclick = () => handleInput('aud', 'full');
-            } else {
-                container.style.gridTemplateColumns = "1fr 1fr";
-                container.innerHTML = `
-                    <button class="resp-btn part-btn" id="pos-p">Part Spatial (A)</button><button class="resp-btn full-btn" id="pos-f">Full Spatial (S)</button>
-                    <button class="resp-btn part-btn" id="aud-p">Part Audio (L)</button><button class="resp-btn full-btn" id="aud-f">Full Audio (K)</button>`;
-                document.getElementById('pos-p').onclick = () => handleInput('pos', 'partial');
-                document.getElementById('pos-f').onclick = () => handleInput('pos', 'full');
-                document.getElementById('aud-p').onclick = () => handleInput('aud', 'partial');
-                document.getElementById('aud-f').onclick = () => handleInput('aud', 'full');
+        // ── Grid ──
+        function renderGrid() {
+            const size = parseInt(document.getElementById('grid-size').value);
+            const el = document.getElementById('grid');
+            el.className = `grid-${size}`;
+            el.innerHTML = '';
+            for (let i = 0; i < size * size; i++) {
+                const c = document.createElement('div');
+                c.className = 'cell';
+                c.id = `c${i}`;
+                el.appendChild(c);
             }
+        }
+
+        // ── Controls UI ──
+        function updateControls() {
+            const mode = parseInt(document.getElementById('mode').value);
+            const cont = document.getElementById('controls-container');
+            const hint = document.getElementById('quad-hint');
+
+            hint.style.display = (mode === 4) ? 'block' : 'none';
+
+            if (mode === 1) {
+                cont.style.gridTemplateColumns = '1fr';
+                cont.innerHTML = `
+                    <button class="resp-btn aud-btn" id="aud-btn">
+                        <span>▶ SOUND MATCH</span>
+                        <span class="key-badge">A</span>
+                    </button>`;
+                document.getElementById('aud-btn').onclick = () => respond('aud');
+            } else if (mode === 2) {
+                cont.style.gridTemplateColumns = '1fr 1fr';
+                cont.innerHTML = `
+                    <button class="resp-btn pos-btn" id="pos-btn">
+                        <span>■ POSITION MATCH</span>
+                        <span class="key-badge">A</span>
+                    </button>
+                    <button class="resp-btn aud-btn" id="aud-btn">
+                        <span>▶ SOUND MATCH</span>
+                        <span class="key-badge">L</span>
+                    </button>`;
+                document.getElementById('pos-btn').onclick = () => respond('pos');
+                document.getElementById('aud-btn').onclick = () => respond('aud');
+            } else {
+                // Quad mode — 2x2 grid
+                cont.style.gridTemplateColumns = '1fr 1fr';
+                cont.innerHTML = `
+                    <button class="resp-btn pos-btn" id="pos-btn">
+                        <span>■ POSITION</span>
+                        <span class="key-badge">A</span>
+                    </button>
+                    <button class="resp-btn aud-btn" id="aud-btn">
+                        <span>▶ SOUND</span>
+                        <span class="key-badge">L</span>
+                    </button>
+                    <button class="resp-btn side-btn" id="side-btn">
+                        <span>◀▶ SIDE</span>
+                        <span class="key-badge">S</span>
+                    </button>
+                    <button class="resp-btn col-btn" id="col-btn">
+                        <span>● COLOR</span>
+                        <span class="key-badge">;</span>
+                    </button>`;
+                document.getElementById('pos-btn').onclick  = () => respond('pos');
+                document.getElementById('aud-btn').onclick  = () => respond('aud');
+                document.getElementById('side-btn').onclick = () => respond('side');
+                document.getElementById('col-btn').onclick  = () => respond('color');
+            }
+
             renderGrid();
         }
 
-        function renderGrid() {
-            const size = parseInt(document.getElementById('grid-size').value);
-            const gridEl = document.getElementById('grid');
-            gridEl.className = `grid-${size}`; gridEl.innerHTML = '';
-            for(let i=0; i<size*size; i++) {
-                const c = document.createElement('div'); c.className = 'cell'; c.id = `c${i}`;
-                gridEl.appendChild(c);
-            }
-        }
-
-        document.getElementById('complexity').onchange = updateUI;
+        document.getElementById('mode').onchange = updateControls;
         document.getElementById('grid-size').onchange = renderGrid;
-        updateUI(); loadLogs();
+        updateControls();
+        loadLogs();
 
-        document.getElementById('start-btn').onclick = () => { if(!gameActive) { document.getElementById('grid').style.opacity = "1"; start(); } };
+        // ── Sequence Generation ──
+        function generateSequence(n, trials, gridSize, luresOn) {
+            const pool = gridSize * gridSize;
+            const seq  = [];
 
-        function start() {
-            stats = { h: 0, m: 0, f: 0 }; gameActive = true;
-            document.getElementById('start-btn').disabled = true;
-            document.getElementById('start-btn').innerText = "Session Active";
-            const n = parseInt(document.getElementById('n-val').value);
-            const delay = parseInt(document.getElementById('d-val').value) * 1000;
-            const streams = parseInt(document.getElementById('complexity').value);
-            const max = parseInt(document.getElementById('t-val').value);
-            sequence = []; currentIndex = 0;
-            runLoop(n, delay, streams, max);
-        }
+            for (let i = 0; i < trials; i++) {
+                let pos, aud, side, color;
+                let posMatch = false, audMatch = false, sideMatch = false, colorMatch = false;
 
-        function runLoop(n, delay, streams, max) {
-            if(currentIndex >= max || !gameActive) { finalize(n, streams); return; }
-            let trial = { pos: [], aud: [], userPos: null, userAud: null };
-            const pool = Math.pow(parseInt(document.getElementById('grid-size').value), 2);
-            const luresOn = document.getElementById('lure-toggle').checked;
+                if (i < n) {
+                    pos   = rand(pool);
+                    aud   = randLetter();
+                    side  = SIDES[rand(2)];
+                    color = rand(4);
+                } else {
+                    const nB = seq[i - n];
 
-            for(let i=0; i<streams; i++) {
-                let p = Math.floor(Math.random() * pool);
-                let a = alphabet[Math.floor(Math.random() * alphabet.length)];
-                
-                if(luresOn && currentIndex > 1 && Math.random() < 0.25) {
-                    let lureIdx = Math.random() > 0.5 ? currentIndex - 1 : currentIndex - (n + 1);
-                    if(sequence[lureIdx]) {
-                        p = sequence[lureIdx].pos[0];
-                        a = sequence[lureIdx].aud[0];
+                    // ── Position ──
+                    const doLurePos = luresOn && Math.random() < LURE_RATE && i >= n + 1;
+                    if (Math.random() < MATCH_RATE) {
+                        pos = nB.pos; posMatch = true;
+                    } else if (doLurePos) {
+                        const li = Math.random() > 0.5 ? i-n-1 : Math.min(i-n+1, i-1);
+                        const lp = seq[li]?.pos ?? rand(pool);
+                        pos = (lp !== nB.pos) ? lp : (lp + 1) % pool;
+                    } else {
+                        do { pos = rand(pool); } while (pos === nB.pos);
+                    }
+
+                    // ── Audio ──
+                    const doLureAud = luresOn && Math.random() < LURE_RATE && i >= n + 1;
+                    if (Math.random() < MATCH_RATE) {
+                        aud = nB.aud; audMatch = true;
+                    } else if (doLureAud) {
+                        const li = Math.random() > 0.5 ? i-n-1 : Math.min(i-n+1, i-1);
+                        const la = seq[li]?.aud ?? randLetter();
+                        aud = (la !== nB.aud) ? la : nextLetter(la);
+                    } else {
+                        do { aud = randLetter(); } while (aud === nB.aud);
+                    }
+
+                    // ── Side (L / R) ──
+                    if (Math.random() < MATCH_RATE) {
+                        side = nB.side; sideMatch = true;
+                    } else {
+                        side = nB.side === 'L' ? 'R' : 'L';
+                    }
+
+                    // ── Color (0-3) ──
+                    if (Math.random() < MATCH_RATE) {
+                        color = nB.color; colorMatch = true;
+                    } else {
+                        do { color = rand(4); } while (color === nB.color);
                     }
                 }
-                if(!trial.pos.includes(p)) trial.pos.push(p);
-                if(!trial.aud.includes(a)) trial.aud.push(a);
+
+                seq.push({
+                    pos, aud, side, color,
+                    posMatch, audMatch, sideMatch, colorMatch,
+                    userPos: null, userAud: null, userSide: null, userColor: null
+                });
+            }
+            return seq;
+        }
+
+        function rand(n) { return Math.floor(Math.random() * n); }
+        function randLetter() { return LETTERS[rand(LETTERS.length)]; }
+        function nextLetter(l) { return LETTERS[(LETTERS.indexOf(l) + 1) % LETTERS.length]; }
+
+        // ── Start ──
+        document.getElementById('start-btn').onclick = () => {
+            if (!gameActive) { initAudio(); startSession(); }
+        };
+
+        function startSession() {
+            nLevel      = parseInt(document.getElementById('n-val').value);
+            totalTrials = parseInt(document.getElementById('t-val').value);
+            const delay    = parseInt(document.getElementById('d-val').value) * 1000;
+            const gridSize = parseInt(document.getElementById('grid-size').value);
+            const luresOn  = document.getElementById('lure-toggle').checked;
+            modeStreams    = parseInt(document.getElementById('mode').value);
+
+            stats = { h:0, m:0, f:0 };
+            currentIndex = 0;
+            gameActive   = true;
+
+            sequence = generateSequence(nLevel, totalTrials, gridSize, luresOn);
+
+            document.getElementById('grid').style.opacity        = '1';
+            document.getElementById('start-btn').disabled        = true;
+            document.getElementById('start-btn').textContent     = 'SESSION ACTIVE';
+            document.getElementById('session-hud').style.display = 'block';
+            document.getElementById('hud-n').textContent         = nLevel;
+
+            // Show arrows only in quad mode
+            const showArrows = modeStreams === 4;
+            document.getElementById('arrow-left').style.visibility  = showArrows ? 'visible' : 'hidden';
+            document.getElementById('arrow-right').style.visibility = showArrows ? 'visible' : 'hidden';
+
+            updateLiveStats();
+            runLoop(delay);
+        }
+
+        // ── Main Loop ──
+        function runLoop(delay) {
+            if (currentIndex >= totalTrials || !gameActive) { finalize(); return; }
+
+            const trial = sequence[currentIndex];
+
+            document.getElementById('live-t').textContent = `${currentIndex+1}/${totalTrials}`;
+            document.getElementById('progress-fill').style.width = `${(currentIndex / totalTrials) * 100}%`;
+
+            // ── Show cell (with color in quad mode) ──
+            const cell = document.getElementById(`c${trial.pos}`);
+            if (cell) {
+                if (modeStreams === 4) {
+                    cell.style.setProperty('--cell-color', COLOR_HEX[trial.color]);
+                    cell.style.setProperty('--cell-glow',  COLOR_GLOW[trial.color]);
+                    cell.style.setProperty('--cell-glow2', COLOR_GLOW2[trial.color]);
+                } else {
+                    cell.style.removeProperty('--cell-color');
+                    cell.style.removeProperty('--cell-glow');
+                    cell.style.removeProperty('--cell-glow2');
+                }
+                cell.classList.add('active');
             }
 
-            sequence.push(trial);
-            trial.pos.forEach(p => document.getElementById(`c${p}`).classList.add('active'));
-            trial.aud.forEach((a, i) => {
-                const u = new SpeechSynthesisUtterance(a);
-                u.voice = voices[document.getElementById('voice-select').value];
-                u.rate = 1.3; setTimeout(() => synth.speak(u), i * 350);
-            });
-            setTimeout(() => trial.pos.forEach(p => document.getElementById(`c${p}`).classList.remove('active')), 800);
-            setTimeout(() => { if(currentIndex >= n) checkMiss(n); currentIndex++; runLoop(n, delay, streams, max); }, delay);
+            // ── Speak letter ──
+            const u  = new SpeechSynthesisUtterance(trial.aud);
+            const vi = document.getElementById('voice-select').value;
+            if (voices[vi]) u.voice = voices[vi];
+            u.rate = 1.3;
+            synth.speak(u);
+            showLetter(trial.aud);
+
+            // ── Directional beep (quad only) ──
+            if (modeStreams === 4) {
+                playDirectionalBeep(trial.side);
+                showSideArrow(trial.side);
+            }
+
+            // ── Clear cell after 700ms ──
+            setTimeout(() => {
+                if (cell) {
+                    cell.classList.remove('active');
+                    cell.style.removeProperty('--cell-color');
+                    cell.style.removeProperty('--cell-glow');
+                    cell.style.removeProperty('--cell-glow2');
+                }
+            }, 700);
+
+            // ── Advance ──
+            loopTimer = setTimeout(() => {
+                if (currentIndex >= nLevel) {
+                    const t = sequence[currentIndex];
+                    if (modeStreams >= 2 && t.posMatch   && t.userPos   === null) { stats.m++; updateLiveStats(); }
+                    if (                   t.audMatch    && t.userAud   === null) { stats.m++; updateLiveStats(); }
+                    if (modeStreams === 4 && t.sideMatch  && t.userSide  === null) { stats.m++; updateLiveStats(); }
+                    if (modeStreams === 4 && t.colorMatch && t.userColor === null) { stats.m++; updateLiveStats(); }
+                }
+                currentIndex++;
+                runLoop(delay);
+            }, delay);
         }
 
-        function getMatch(curr, prev) {
-            if(!prev) return null;
-            const matches = curr.filter(x => prev.includes(x)).length;
-            if (matches === 0) return null;
-            return (matches === curr.length && matches === prev.length) ? 'full' : 'partial';
+        // ── Letter Flash ──
+        let letterTimer = null;
+        function showLetter(l) {
+            const el = document.getElementById('letter-display');
+            el.textContent = l;
+            el.classList.add('show');
+            clearTimeout(letterTimer);
+            letterTimer = setTimeout(() => {
+                el.classList.remove('show');
+                setTimeout(() => { if (!el.classList.contains('show')) el.textContent = '·'; }, 200);
+            }, 800);
         }
 
-        function checkMiss(n) {
-            const curr = sequence[currentIndex], prev = sequence[currentIndex - n];
-            if(getMatch(curr.pos, prev.pos) && !curr.userPos) stats.m++;
-            if(getMatch(curr.aud, prev.aud) && !curr.userAud) stats.m++;
+        // ── Side Arrow Flash ──
+        let sideTimer = null;
+        function showSideArrow(side) {
+            const arL = document.getElementById('arrow-left');
+            const arR = document.getElementById('arrow-right');
+            arL.classList.remove('show');
+            arR.classList.remove('show');
+            clearTimeout(sideTimer);
+            if (side === 'L') arL.classList.add('show');
+            else              arR.classList.add('show');
+            sideTimer = setTimeout(() => {
+                arL.classList.remove('show');
+                arR.classList.remove('show');
+            }, 700);
         }
 
-        function handleInput(type, strength) {
-            const n = parseInt(document.getElementById('n-val').value);
-            if(!gameActive || currentIndex < n) return;
-            const curr = sequence[currentIndex], prev = sequence[currentIndex - n];
-            const actual = getMatch(type === 'pos' ? curr.pos : curr.aud, type === 'pos' ? prev.pos : prev.aud);
-            if(type === 'pos') { if(curr.userPos) return; curr.userPos = strength; } 
-            else { if(curr.userAud) return; curr.userAud = strength; }
-            const btnId = getBtnId(type, strength);
-            if(actual === strength) { stats.h++; flash(btnId, true); }
-            else { stats.f++; flash(btnId, false); }
+        // ── User Response ──
+        function respond(type) {
+            if (!gameActive || currentIndex < nLevel) return;
+            const t = sequence[currentIndex];
+
+            function check(matchKey, userKey, btnId) {
+                if (t[userKey] !== null) return;
+                t[userKey] = true;
+                if (t[matchKey]) { stats.h++; flash(btnId, true);  }
+                else             { stats.f++; flash(btnId, false); }
+                updateLiveStats();
+            }
+
+            if (type === 'pos')   check('posMatch',   'userPos',   'pos-btn');
+            if (type === 'aud')   check('audMatch',   'userAud',   'aud-btn');
+            if (type === 'side')  check('sideMatch',  'userSide',  'side-btn');
+            if (type === 'color') check('colorMatch', 'userColor', 'col-btn');
         }
 
-        function getBtnId(type, strength) {
-            const s = parseInt(document.getElementById('complexity').value);
-            if(s === 1) return type === 'pos' ? 'pos-single' : 'aud-single';
-            return type === 'pos' ? (strength === 'full' ? 'pos-f' : 'pos-p') : (strength === 'full' ? 'aud-f' : 'aud-p');
+        function updateLiveStats() {
+            document.getElementById('live-h').textContent = stats.h;
+            document.getElementById('live-m').textContent = stats.m;
+            document.getElementById('live-f').textContent = stats.f;
         }
 
-        function flash(id, success) {
+        function flash(id, ok) {
             const el = document.getElementById(id);
-            const cls = success ? 'flash-success' : 'flash-fail';
-            el.classList.add(cls); setTimeout(() => el.classList.remove(cls), 300);
+            if (!el) return;
+            const cls = ok ? 'flash-success' : 'flash-fail';
+            el.classList.add(cls);
+            setTimeout(() => el.classList.remove(cls), 380);
         }
 
-        function finalize(n, streams) {
+        // ── Finalize ──
+        function finalize() {
             gameActive = false;
-            document.getElementById('start-btn').disabled = false;
-            document.getElementById('start-btn').innerText = "Engage Protocol";
-            document.getElementById('grid').style.opacity = "0.5";
-            const totalErrors = stats.m + stats.f;
-            const acc = totalErrors === 0 && stats.h === 0 ? 0 : Math.round((stats.h / (stats.h + totalErrors)) * 100);
-            saveLog(n, streams, acc, stats);
-            alert(`Session Complete: ${acc}% Accuracy`);
+            clearTimeout(loopTimer);
+
+            document.getElementById('grid').style.opacity         = '0.35';
+            document.getElementById('start-btn').disabled         = false;
+            document.getElementById('start-btn').textContent      = 'ENGAGE PROTOCOL';
+            document.getElementById('session-hud').style.display  = 'none';
+            document.getElementById('progress-fill').style.width  = '0%';
+            document.getElementById('arrow-left').classList.remove('show');
+            document.getElementById('arrow-right').classList.remove('show');
+
+            const total = stats.h + stats.m + stats.f;
+            const acc   = total === 0 ? 0 : Math.round((stats.h / total) * 100);
+            const color = acc >= 80 ? 'var(--success)' : acc >= 50 ? 'var(--warn)' : 'var(--fail)';
+
+            document.getElementById('modal-acc').textContent  = `${acc}%`;
+            document.getElementById('modal-acc').style.color  = color;
+            document.getElementById('modal-h').textContent    = stats.h;
+            document.getElementById('modal-m').textContent    = stats.m;
+            document.getElementById('modal-f').textContent    = stats.f;
+            document.getElementById('modal').classList.add('show');
+
+            saveLog(nLevel, modeStreams, acc, stats);
         }
 
+        window.closeModal = function() {
+            document.getElementById('modal').classList.remove('show');
+        };
+
+        // ── Logs ──
         function saveLog(n, s, acc, st) {
-            const logs = JSON.parse(localStorage.getItem('gabrinium_logs') || '[]');
-            logs.unshift({ date: new Date().toLocaleTimeString(), n, s, acc, h: st.h, m: st.m, f: st.f });
-            localStorage.setItem('gabrinium_logs', JSON.stringify(logs.slice(0, 50)));
+            const logs = JSON.parse(localStorage.getItem('gnb_logs') || '[]');
+            logs.unshift({ time: new Date().toLocaleTimeString(), n, s, acc, h:st.h, m:st.m, f:st.f });
+            localStorage.setItem('gnb_logs', JSON.stringify(logs.slice(0, 60)));
             loadLogs();
         }
 
         function loadLogs() {
-            const logs = JSON.parse(localStorage.getItem('gabrinium_logs') || '[]');
-            const list = document.getElementById('log-list');
-            list.innerHTML = logs.map(l => `
-                <div class="history-item">
-                    <span>${l.date}</span><span style="color:var(--accent)">N${l.n}S${l.s}</span>
-                    <span class="stat-val" style="color:var(--success)">HIT:${l.h}</span>
-                    <span class="stat-val" style="color:var(--fail)">ERR:${l.m+l.f}</span>
-                    <span style="font-weight:900">${l.acc}%</span>
-                </div>`).join('');
+            const logs = JSON.parse(localStorage.getItem('gnb_logs') || '[]');
+            const el   = document.getElementById('log-list');
+            if (!logs.length) {
+                el.innerHTML = '<div class="empty-log">NO SESSIONS RECORDED</div>';
+                return;
+            }
+            const modeLabel = s => s === 1 ? 'S' : s === 2 ? 'D' : s === 4 ? 'Q' : `${s}`;
+            el.innerHTML = logs.map(l => {
+                const col = l.acc >= 80 ? 'var(--success)' : l.acc >= 50 ? 'var(--warn)' : 'var(--fail)';
+                return `<div class="history-item">
+                    <span class="h-time">${l.time}</span>
+                    <span class="h-n">N${l.n}·${modeLabel(l.s)}</span>
+                    <span class="h-num" style="color:var(--success)">H:${l.h}</span>
+                    <span class="h-num" style="color:var(--warn)">M:${l.m}</span>
+                    <span class="h-pct" style="color:${col}">${l.acc}%</span>
+                </div>`;
+            }).join('');
         }
 
-        function clearLogs() { if(confirm("Purge Protocol Logs?")) { localStorage.removeItem('gabrinium_logs'); loadLogs(); } }
-
-        window.onkeydown = (e) => {
-            const k = e.key.toLowerCase(), s = parseInt(document.getElementById('complexity').value);
-            if(s === 1) { if(k === 'a') handleInput('pos', 'full'); if(k === 'l') handleInput('aud', 'full'); }
-            else { 
-                if(k === 'a') handleInput('pos', 'partial'); if(k === 's') handleInput('pos', 'full');
-                if(k === 'l') handleInput('aud', 'partial'); if(k === 'k') handleInput('aud', 'full');
+        window.clearLogs = function() {
+            if (confirm('Purge all session logs?')) {
+                localStorage.removeItem('gnb_logs');
+                loadLogs();
             }
         };
+
+        // ── Keyboard ──
+        window.addEventListener('keydown', e => {
+            if (e.repeat) return;
+            const k    = e.key.toLowerCase();
+            const mode = parseInt(document.getElementById('mode').value);
+
+            if (mode === 1) {
+                if (k === 'a') respond('aud');
+            } else if (mode === 2) {
+                if (k === 'a') respond('pos');
+                if (k === 'l') respond('aud');
+            } else {
+                // Quad
+                if (k === 'a')  respond('pos');
+                if (k === 'l')  respond('aud');
+                if (k === 's')  respond('side');
+                if (k === ';')  respond('color');
+            }
+        });
+
+    })();
     </script>
 </body>
 </html>
