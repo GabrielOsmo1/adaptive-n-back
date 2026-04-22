@@ -38,7 +38,6 @@
         .input-group { display: flex; flex-direction: column; font-size: 0.65rem; color: var(--accent); font-weight: bold; }
         select, input { background: var(--bg); border: 1px solid var(--box-border); color: white; padding: 6px; margin-top: 4px; border-radius: 3px; outline: none; }
         
-        /* Toggle Switch Style */
         .switch { position: relative; display: inline-block; width: 34px; height: 20px; margin-top: 4px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #30363d; transition: .4s; border-radius: 20px; }
@@ -101,7 +100,9 @@
     <h1 style="letter-spacing: 4px; color: var(--accent); margin: 5px 0;">GABRINIUM</h1>
 
     <div class="config-panel">
-        <div class="input-group"><label>N-LEVEL</label><input type="number" id="n-val" value="2" min="1"></div>
+        <div class="input-group">
+            <label>N-LEVEL</label>
+            <select id="n-val"></select> </div>
         <div class="input-group">
             <label>GRID</label>
             <select id="grid-size">
@@ -140,6 +141,15 @@
         const alphabet = "BDFHJKLMNPRSTW";
         let voices = [], sequence = [], currentIndex = 0, gameActive = false;
         let stats = { h: 0, m: 0, f: 0 };
+
+        // Populate N-Level Dropdown 1-25
+        const nSelect = document.getElementById('n-val');
+        for(let i=1; i<=25; i++) {
+            const opt = document.createElement('option');
+            opt.value = i; opt.innerText = i;
+            if(i === 2) opt.selected = true;
+            nSelect.appendChild(opt);
+        }
 
         function populateVoices() {
             voices = synth.getVoices().filter(v => v.lang.startsWith('en'));
@@ -199,16 +209,14 @@
         function runLoop(n, delay, streams, max) {
             if(currentIndex >= max || !gameActive) { finalize(n, streams); return; }
             let trial = { pos: [], aud: [], userPos: null, userAud: null };
-            const pool = parseInt(document.getElementById('grid-size').value)**2;
+            const pool = Math.pow(parseInt(document.getElementById('grid-size').value), 2);
             const luresOn = document.getElementById('lure-toggle').checked;
 
-            // Generate Stimuli with Lure Logic
             for(let i=0; i<streams; i++) {
                 let p = Math.floor(Math.random() * pool);
                 let a = alphabet[Math.floor(Math.random() * alphabet.length)];
                 
                 if(luresOn && currentIndex > 1 && Math.random() < 0.25) {
-                    // Try to lure from N-1 or N+1
                     let lureIdx = Math.random() > 0.5 ? currentIndex - 1 : currentIndex - (n + 1);
                     if(sequence[lureIdx]) {
                         p = sequence[lureIdx].pos[0];
@@ -271,7 +279,6 @@
             document.getElementById('start-btn').disabled = false;
             document.getElementById('start-btn').innerText = "Engage Protocol";
             document.getElementById('grid').style.opacity = "0.5";
-            // Default 100% if no errors
             const totalErrors = stats.m + stats.f;
             const acc = totalErrors === 0 ? 100 : Math.round((stats.h / (stats.h + totalErrors)) * 100);
             saveLog(n, streams, acc, stats);
